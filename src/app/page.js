@@ -2,8 +2,24 @@ import sleek from '@/lib/sleek';
 import Link from 'next/link';
 
 export default async function Home() {
-  const data = await sleek.findPages('/');
-  const blogPosts = await sleek.findPages("/blog/")
+  // sensible fallbacks so build doesn't crash
+  let data = { title: 'My site' };
+  let blogPosts = [];
+
+  try {
+    if (sleek && typeof sleek.findPages === 'function') {
+      const d = await sleek.findPages('/');
+      const b = await sleek.findPages('/blog/');
+      if (d) data = d;
+      if (Array.isArray(b)) blogPosts = b;
+    } else {
+      console.error('sleek.findPages is not available', sleek);
+    }
+  } catch (err) {
+    // Log the actual error — this will appear in Vercel build logs.
+    console.error('Error in Home while calling sleek.findPages:', err);
+    // Keep using fallbacks so build can finish.
+  }
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-24 bg-gray-50">
@@ -11,7 +27,8 @@ export default async function Home() {
         <h1 className="text-5xl font-bold tracking-tight text-gray-900">
           {data.title}
         </h1>
-         <div className="text-center mb-20">
+
+        <div className="text-center mb-20">
           <h1 className="text-5xl md:text-6xl font-bold tracking-tight mb-6 bg-gradient-to-r from-indigo-600 to-purple-700 bg-clip-text text-transparent">
             {data.title}
           </h1>
@@ -20,7 +37,7 @@ export default async function Home() {
           </p>
         </div>
 
-       {blogPosts.length === 0 ? (
+        {blogPosts.length === 0 ? (
           <p className="text-center text-gray-500">No posts available yet.</p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
