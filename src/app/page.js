@@ -2,38 +2,35 @@ import sleek from '@/lib/sleek';
 import Link from 'next/link';
 
 export default async function Home() {
-  // sensible fallbacks so build doesn't crash
   let data = { title: 'My site' };
   let blogPosts = [];
 
   try {
-    if (sleek && typeof sleek.findPages === 'function') {
-      const d = await sleek.findPages('/');
-      const b = await sleek.findPages('/blog/');
-      if (d) data = d;
-      if (Array.isArray(b)) blogPosts = b;
+    if (sleek) {
+      const allContent = await sleek.getContent();
+      const homePage = allContent.pages?.find((page => page._path === '/'));
+      const blogPostsPage = allContent.pages?.filter((page => page._path.includes('/blog/')));
+      if (homePage && typeof homePage === 'object') data = homePage;
+      if (Array.isArray(blogPostsPage)) blogPosts = blogPostsPage;
+      else if (blogPostsPage && Array.isArray(blogPostsPage.results)) blogPosts = blogPostsPage.results;
     } else {
-      console.error('sleek.findPages is not available', sleek);
+      console.error('sleek client methods not available', sleek);
     }
   } catch (err) {
-    // Log the actual error — this will appear in Vercel build logs.
-    console.error('Error in Home while calling sleek.findPages:', err);
-    // Keep using fallbacks so build can finish.
+    console.error('Error in Home while calling sleek client:', err);
   }
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-24 bg-gray-50">
       <div className="max-w-2xl w-full text-center space-y-8">
-        <h1 className="text-5xl font-bold tracking-tight text-gray-900">
-          {data.title}
-        </h1>
+        
 
         <div className="text-center mb-20">
-          <h1 className="text-5xl md:text-6xl font-bold tracking-tight mb-6 bg-gradient-to-r from-indigo-600 to-purple-700 bg-clip-text text-transparent">
+          <h1 className="text-5xl font-bold tracking-tight text-gray-900">
             {data.title}
           </h1>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Thoughts, tutorials, and stories from the world of tech, nature, and craftsmanship.
+           {data.description || 'Welcome to my sleek blog!'}
           </p>
         </div>
 
@@ -55,11 +52,13 @@ export default async function Home() {
                   )}
                   <div className="p-6">
                     <time className="text-sm text-gray-500 block mb-2">
-                      {new Date(post._meta.updated_at).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric',
-                      })}
+                      {post._meta?.updated_at
+                        ? new Date(post._meta.updated_at).toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric',
+                          })
+                        : ''}
                     </time>
                     <h2 className="text-2xl font-semibold text-gray-900 group-hover:text-indigo-600 transition-colors">
                       {post.title}
